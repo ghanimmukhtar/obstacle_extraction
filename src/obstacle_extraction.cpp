@@ -79,6 +79,7 @@ int main(int argc, char **argv)
 
     ros::Publisher first_corner = n.advertise<std_msgs::Float64MultiArray>("obstacle_first_corner", 100);
     ros::Publisher second_corner = n.advertise<std_msgs::Float64MultiArray>("obstacle_second_corner", 100);
+    ros::Publisher corner = n.advertise<std_msgs::Float64MultiArray>("obstacle_corners", 100);
 
     ros::AsyncSpinner my_spinner(1);
     my_spinner.start();
@@ -145,20 +146,28 @@ int main(int argc, char **argv)
     //ROS_INFO_STREAM("position in robot frame is: " << position_robot_frame);
     //ROS_INFO_STREAM("orientation is: " << quat.);
 
-    std_msgs::Float64MultiArray first_corner_data, second_corner_data;
-    first_corner_data.data.push_back(min_robot_frame(0));
+    std_msgs::Float64MultiArray first_corner_data, second_corner_data, corner_data;
+    /*first_corner_data.data.push_back(min_robot_frame(0));
     first_corner_data.data.push_back(min_robot_frame(1));
     first_corner_data.data.push_back(min_robot_frame(2));
 
     second_corner_data.data.push_back(max_robot_frame(0));
     second_corner_data.data.push_back(max_robot_frame(1));
-    second_corner_data.data.push_back(max_robot_frame(2));
+    second_corner_data.data.push_back(max_robot_frame(2));*/
+
+    corner_data.data.push_back(min_robot_frame(0));
+    corner_data.data.push_back(min_robot_frame(1));
+    corner_data.data.push_back(min_robot_frame(2));
+
+    corner_data.data.push_back(max_robot_frame(0));
+    corner_data.data.push_back(max_robot_frame(1));
+    corner_data.data.push_back(max_robot_frame(2));
 
     ros::Rate my_rate(1);
     while(!viewer->wasStopped())
     {
-        first_corner.publish(first_corner_data);
-        second_corner.publish(second_corner_data);
+        corner.publish(corner_data);
+        //second_corner.publish(second_corner_data);
         viewer->spinOnce (100);
         boost::this_thread::sleep (boost::posix_time::microseconds (100000));
         ros::spinOnce();
