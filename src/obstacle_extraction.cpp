@@ -121,6 +121,7 @@ int main(int argc, char **argv)
     Eigen::Vector3d position_camera_frame, position_robot_frame;
 
     position_camera_frame << position(0), position(1), position(2);
+    ROS_INFO_STREAM("position in rgb_optical frame is: " << position_camera_frame);
     convert_object_position_to_robot_base(position_camera_frame, position_robot_frame);
     Eigen::Quaternionf quat (rotational_matrix_OBB);
     viewer->addCube (position, quat, max_point_OBB.x - min_point_OBB.x, max_point_OBB.y - min_point_OBB.y, max_point_OBB.z - min_point_OBB.z, "OBB");   
@@ -132,7 +133,7 @@ int main(int argc, char **argv)
     viewer->addLine (center, x_axis, 1.0f, 0.0f, 0.0f, "major eigen vector");
     viewer->addLine (center, y_axis, 0.0f, 1.0f, 0.0f, "middle eigen vector");
     viewer->addLine (center, z_axis, 0.0f, 0.0f, 1.0f, "minor eigen vector");
-    ROS_INFO_STREAM("position in rgb_optical frame is: " << position_camera_frame);
+
     ROS_INFO_STREAM("position in robot frame is: " << position_robot_frame);
     Eigen::Vector3d min_coord, max_coord, min_robot_frame, max_robot_frame;
     min_coord << position_OBB.x - fabs(min_point_OBB.x), position_OBB.y - fabs(min_point_OBB.y), position_OBB.z - fabs(min_point_OBB.z);
@@ -155,14 +156,27 @@ int main(int argc, char **argv)
     second_corner_data.data.push_back(max_robot_frame(1));
     second_corner_data.data.push_back(max_robot_frame(2));*/
 
+    //size_t my_size = 6;
+    //corner_data.layout.dim.push_back(my_size);
+    /*Coordinates updated to match baxter dart frame system*/
     corner_data.data.push_back(min_robot_frame(0));
-    corner_data.data.push_back(min_robot_frame(1));
-    corner_data.data.push_back(min_robot_frame(2));
+    corner_data.data.push_back(min_robot_frame(2) + 0.93);
+    corner_data.data.push_back(-min_robot_frame(1));
 
     corner_data.data.push_back(max_robot_frame(0));
-    corner_data.data.push_back(max_robot_frame(1));
-    corner_data.data.push_back(max_robot_frame(2));
+    corner_data.data.push_back(max_robot_frame(2) + 0.93);
+    corner_data.data.push_back(-max_robot_frame(1));
 
+
+    /*Coordinates kept in baxter real frame system
+    corner_data.data.push_back(min_robot_frame(0));
+    corner_data.data.push_back(min_robot_frame(2));
+    corner_data.data.push_back(min_robot_frame(1));
+
+    corner_data.data.push_back(max_robot_frame(0));
+    corner_data.data.push_back(max_robot_frame(2));
+    corner_data.data.push_back(max_robot_frame(1));
+*/
     ros::Rate my_rate(1);
     while(!viewer->wasStopped())
     {
