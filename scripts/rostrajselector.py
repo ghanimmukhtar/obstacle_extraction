@@ -19,7 +19,7 @@ from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayou
 
 import time
 # TODO: Update trajectory file
-default_archive_file = "demo_trj.dat"
+default_archive_file = "traj_francia.dat"
 
 
 #TODO: Define message type and topic of the incoming bounding box data
