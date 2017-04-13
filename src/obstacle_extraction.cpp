@@ -11,18 +11,37 @@
 #include <vector>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/filters/filter.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <boost/thread/thread.hpp>
+#include <pcl/filters/frustum_culling.h>
 
 #include <tf/transform_listener.h>
 #include <geometry_msgs/PointStamped.h>
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ> ());
+pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_2 (new pcl::PointCloud<pcl::PointXYZ> ());
+pcl::FrustumCulling<pcl::PointXYZ> fc;
+tf::Quaternion camera_pose_quat(0.034, 0.327, 0.030, 0.944);
+tf::Matrix3x3 rotation(camera_pose_quat);
+Eigen::Matrix4f camera_pose;
 
 //get object position (x, y and z)
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& depth_msg){
     //locate_object(depth_msg, parameters);
-    pcl::fromROSMsg(*depth_msg, *cloud);
+    pcl::fromROSMsg(*depth_msg, *cloud_2);
+    fc.setInputCloud (cloud_2);
+    //fc.setVerticalFOV (45);
+    //fc.setHorizontalFOV (60);
+    fc.setNearPlaneDistance (0.5);
+    fc.setFarPlaneDistance (2);
+    fc.setCameraPose(camera_pose);
+    pcl::PointCloud <pcl::PointXYZ> target;
+    fc.filter (target);
+    *cloud_2 = target;
+
+    std::vector<int> mapping;
+    pcl::removeNaNFromPointCloud(target, *cloud, mapping);
 }
 
 void convert_object_position_to_robot_base(Eigen::Vector3d& object_pose_in_camera_frame, Eigen::Vector3d& object_pose_in_robot_frame){
@@ -75,12 +94,16 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "obstacle_extraction");
     ros::NodeHandle n;
 
-    ros::Subscriber cloud_sub = n.subscribe<sensor_msgs::PointCloud2>("/camera/depth_registered/points", 1, cloud_cb);
+    ros::Subscriber cloud_sub = n.subscribe<sensor_msgs::PointCloud2>("/camera/depth/points", 1, cloud_cb);
 
     ros::Publisher first_corner = n.advertise<std_msgs::Float64MultiArray>("obstacle_first_corner", 100);
     ros::Publisher second_corner = n.advertise<std_msgs::Float64MultiArray>("obstacle_second_corner", 100);
     ros::Publisher corner = n.advertise<std_msgs::Float64MultiArray>("obstacle_corners", 100);
 
+    camera_pose << 0, 0, 1, 0,
+            0,-1, 0, 0,
+            1, 0, 0, 0,
+            0, 0, 0, 1;
     ros::AsyncSpinner my_spinner(1);
     my_spinner.start();
 
@@ -124,7 +147,7 @@ int main(int argc, char **argv)
     ROS_INFO_STREAM("position in rgb_optical frame is: " << position_camera_frame);
     convert_object_position_to_robot_base(position_camera_frame, position_robot_frame);
     Eigen::Quaternionf quat (rotational_matrix_OBB);
-    viewer->addCube (position, quat, max_point_OBB.x - min_point_OBB.x, max_point_OBB.y - min_point_OBB.y, max_point_OBB.z - min_point_OBB.z, "OBB");   
+    viewer->addCube (position, quat, max_point_OBB.x - min_point_OBB.x, max_point_OBB.y - min_point_OBB.y, max_point_OBB.z - min_point_OBB.z, "OBB");
 
     pcl::PointXYZ center (mass_center (0), mass_center (1), mass_center (2));
     pcl::PointXYZ x_axis (major_vector (0) + mass_center (0), major_vector (1) + mass_center (1), major_vector (2) + mass_center (2));
@@ -151,7 +174,6 @@ int main(int argc, char **argv)
     /*first_corner_data.data.push_back(min_robot_frame(0));
     first_corner_data.data.push_back(min_robot_frame(1));
     first_corner_data.data.push_back(min_robot_frame(2));
-
     second_corner_data.data.push_back(max_robot_frame(0));
     second_corner_data.data.push_back(max_robot_frame(1));
     second_corner_data.data.push_back(max_robot_frame(2));*/
@@ -172,7 +194,6 @@ int main(int argc, char **argv)
     corner_data.data.push_back(min_robot_frame(0));
     corner_data.data.push_back(min_robot_frame(2));
     corner_data.data.push_back(min_robot_frame(1));
-
     corner_data.data.push_back(max_robot_frame(0));
     corner_data.data.push_back(max_robot_frame(2));
     corner_data.data.push_back(max_robot_frame(1));
